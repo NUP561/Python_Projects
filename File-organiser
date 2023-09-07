@@ -1,0 +1,84 @@
+import os
+import shutil
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+# Define the source directory and destination directory
+source_dir = os.path.expanduser(r"c:\Users\nandini01.c\Downloads")
+destination_directory = os.path.expanduser(r"c:\Users\nandini01.c\Downloads")
+
+# Create a dictionary to map file extensions to folder names
+file_type_mapping = {
+    ".pdf": "PDFs",
+    ".jpg": "Images",
+    ".png": "Images",
+    ".docx": "Docs",
+    ".doc": "Docs",
+    ".xlsx": "Excel",
+    ".csv": "Excel",
+    ".zip": "Archives",
+    ".exe": "Executables",
+    ".txt": "Text",
+    ".pptx": "PPTs",
+    ".py": "Python",
+    ".sh":"Scripts",
+    ".yml":"yaml",
+    
+}
+
+# Define a function to organize a single file
+def organize_file(file_path):
+    _, file_extension = os.path.splitext(file_path)
+    file_extension = file_extension.lower()
+    if file_extension in file_type_mapping:
+        category = file_type_mapping[file_extension]
+        destination_folder = os.path.join(destination_directory, category)
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+        shutil.move(file_path, os.path.join(destination_folder, os.path.basename(file_path)))
+
+# Define a custom event handler that responds to file creation events
+class FileCreatedHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        organize_file(event.src_path)
+
+# Define a function to process existing files in subfolders
+def organize_existing_files():
+    for root, _, files in os.walk(source_dir):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            organize_file(file_path)
+            
+def organize_file(file_path):
+    _, file_extension = os.path.splitext(file_path)
+    file_extension = file_extension.lower()
+    if file_extension in file_type_mapping:
+        category = file_type_mapping[file_extension]
+        destination_folder = os.path.join(destination_directory, category)
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+        destination_path = os.path.join(destination_folder, os.path.basename(file_path))
+        shutil.move(file_path, destination_path)
+        print(f"Moved '{file_path}' to '{destination_path}'")
+
+
+# Create an observer that monitors the source directory
+observer = Observer()
+event_handler = FileCreatedHandler()
+observer.schedule(event_handler, path=source_dir, recursive=False)
+observer.start()
+
+try:
+    # Organize existing files first
+    organize_existing_files()
+
+    # Run the observer indefinitely
+    observer.join()
+except KeyboardInterrupt:
+    observer.stop()
+
+# Stop the observer when the script is interrupted
+observer.stop()
+observer.join()
